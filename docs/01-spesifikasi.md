@@ -26,20 +26,13 @@ Cara wawancara dan tanggal:
 6 Oktober 2026, pukul 20.00 WIB — Daring: Wawancara bersama narasumber dengan peran Praktisi Cyber Security melalui Google Meet.           
 
 | Pertanyaan kami | Jawaban narasumber |
-
-|Kalau boleh tahu, selama bekerja di bidang IT peran Bapak saat ini di bidang IT itu sebagai apa ya?      |Narasumber memiliki peran sebagai Network Engineer, Programmer, Data Analyst, Full-Stack Developer, dan Praktisi Cyber Security.|
-
-|Pernah mengalami gangguan karena banyaknya permintaan yang masuk secara bersamaan?   |Tiga narasumber dari Komdigi pernah menghadapi kondisi banyaknya permintaan secara bersamaan. Praktisi Cyber Security juga menyampaikan bahwa kondisi traffic tinggi sudah menjadi makanan sehari-hari dalam pekerjaannya. |
-
-|Kalau terjadi kondisi seperti itu, biasanya apa yang paling dikhawatirkan oleh tim IT?|  | Server kewalahan atau down sehingga layanan tidak dapat diakses, serta risiko kehilangan atau terganggunya data.|
-
-|Kalau kondisi seperti itu terjadi, biasanya perusahaan melakukan apa untuk mengatasinya?| | Penanganan yang disebutkan meliputi penggunaan firewall, pendekatan keamanan berlapis, dan mitigasi pada Layer 4 serta Layer 7.|
-
-|Menurut Bapak, apakah permasalahan yang ingin kami selesaikan ini memang relevan dengan kebutuhan perusahaan?| | Narasumber menilai masalah tersebut relevan dengan kebutuhan keamanan dan ketersediaan layanan digital.|
-
-|Apakah GarudaShield cocok untuk membantu mengatasi masalah tersebut?| | GarudaShield dinilai berpotensi membantu, tetapi perlu melalui pengujian teknis. Penerapannya juga perlu mempertimbangkan fitur, biaya, kebutuhan pengguna, dan kemampuan menghadapi serangan DDoS berskala besar.|
-
-Jika tidak memungkinkan wawancara, tulis persona pengguna dan dasar asumsi kalian di sini.
+| :--- | :--- |
+|Kalau boleh tahu, selama bekerja di bidang IT peran Bapak saat ini di bidang IT itu sebagai apa ya?|Narasumber memiliki peran sebagai Network Engineer, Programmer, Data Analyst, Full-Stack Developer, dan Praktisi Cyber Security.|
+|Pernah mengalami gangguan karena banyaknya permintaan yang masuk secara bersamaan?   |Tiga narasumber dari Komdigi pernah menghadapi kondisi banyaknya permintaan secara bersamaan. Praktisi Cyber Security juga menyampaikan bahwa kondisi traffic tinggi sudah menjadi makanan sehari-hari dalam pekerjaannya.|
+|Kalau terjadi kondisi seperti itu, biasanya apa yang paling dikhawatirkan oleh tim IT?|Server kewalahan atau down sehingga layanan tidak dapat diakses, serta risiko kehilangan atau terganggunya data.|
+|Kalau kondisi seperti itu terjadi, biasanya perusahaan melakukan apa untuk mengatasinya?|Penanganan yang disebutkan meliputi penggunaan firewall, pendekatan keamanan berlapis, dan mitigasi pada Layer 4 serta Layer 7.|
+|Menurut Bapak, apakah permasalahan yang ingin kami selesaikan ini memang relevan dengan kebutuhan perusahaan?|Narasumber menilai masalah tersebut relevan dengan kebutuhan keamanan dan ketersediaan layanan digital.|
+|Apakah GarudaShield cocok untuk membantu mengatasi masalah tersebut?|GarudaShield dinilai berpotensi membantu, tetapi perlu melalui pengujian teknis. Penerapannya juga perlu mempertimbangkan fitur, biaya, kebutuhan pengguna, dan kemampuan menghadapi serangan DDoS berskala besar.|
 
 ## 4. Fitur wajib (hanya untuk alur inti)
 ## Alur Inti
