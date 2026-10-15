@@ -103,3 +103,43 @@ Dokumen ini mencatat bug yang benar-benar ditemukan, diuji, dan diperbaiki pada 
 - **Ditemukan oleh:** bersama (AI dibantu pemeriksaan manusia)
 
 ---
+
+## Bug 3 — Diskon member dan diskon non-member digabung
+
+- **Gejala** (apa yang terlihat salah):
+  Member dengan subtotal minimal Rp100.000 mendapat diskon **15%** (5% + 10%), padahal seharusnya hanya 10%. Contoh: subtotal 151.000 → diskon tertulis 22.650, seharusnya 15.100.
+
+- **Langkah untuk memunculkan bug:**
+  1. Centang "Pelanggan member".
+  2. Isi keranjang hingga subtotal Rp151.000.
+  3. Diskon yang dihitung = 22.650 (15%). Seharusnya 15.100 (10%).
+
+- **Aturan bisnis yang dilanggar** (nomor aturan di README):
+  Aturan 4 — Diskon tidak boleh digabung, hanya satu yang berlaku. Member mendapat diskon 10% dari subtotal; non-member dengan subtotal minimal Rp100.000 mendapat diskon 5%.
+
+- **Penyebab** (file, fungsi, dan penjelasan):
+  Pada kode lama, fungsi `hitungDiskon` di `kasir.js` (baris 58–67) memiliki dua blok `if` terpisah yang dijalankan berurutan. Blok pertama menambahkan diskon 5% bila `subtotal > 100000`, blok kedua menambahkan diskon 10% bila `member`. Karena keduanya menambahkan ke variabel `diskon` yang sama, pelanggan member dengan subtotal tinggi mendapat 5% + 10% = 15%. Ini melanggar aturan 4 karena diskon seharusnya saling eksklusif, bukan dijumlahkan.
+
+- **Perbaikan** (apa yang diubah):
+  Pada `kasir.js` (baris 66–74), logika diubah menjadi `if / else if` agar hanya satu diskon yang berlaku:
+  ```js
+  if (member) {
+    diskon = (subtotal * 10) / 100;
+  } else if (subtotal >= 100000) {
+    diskon = (subtotal * 5) / 100;
+  }
+  return Math.round(diskon);
+  ```
+
+- **Test yang membuktikan** (nama test):
+  Berkas `tes/diskon.test.js`: "member di atas 100000 hanya dapat 10%, tidak digabung dengan 5%" dan "member tepat 100000 hanya dapat 10% (10000), tidak digabung 15%".
+  Hasil pada kode lama: **gagal** (`22650 !== 15100`).
+  Hasil setelah perbaikan: **lulus**.
+
+- **Commit perbaikan** (pesan commit):
+  Belum dibuat — menunggu commit manual.
+  Usulan: `perbaikan: diskon member dan non-member tidak boleh digabung`
+
+- **Ditemukan oleh:** bersama (AI dibantu pemeriksaan manusia)
+
+---
