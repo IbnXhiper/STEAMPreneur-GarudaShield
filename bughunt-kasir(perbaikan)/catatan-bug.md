@@ -269,3 +269,18 @@ Test contoh `tes/contoh.test.js` tidak diubah dan tetap lulus.
 - `tes/validasi-keranjang.test.js`, `tes/diskon.test.js`, `tes/ppn-total.test.js`, `tes/pembayaran.test.js` — test baru.
 
 `app.js` dan `index.html` tidak diubah karena perilaku tampilan sudah benar setelah logika di `kasir.js` diperbaiki.
+
+## Cara menjalankan test
+
+Perintah dijalankan dari folder `bughunt-kasir(perbaikan)`:
+
+```
+node --test
+```
+
+## Keterbatasan
+
+- Interaksi DOM di `app.js` tidak diuji otomatis (tidak ada dependensi browser/headless yang ditambahkan). Sinkronisasi tampilan diperiksa manual dengan membaca alur `app.js` → `kasir.js`.
+- Pembuktian terhadap kode lama dilakukan dengan menyalin `kasir.js` asli ke berkas sementara di dalam folder aplikasi, menjalankan suite test final, lalu memulihkan versi perbaikan. Berkas sementara sudah dihapus; tidak ada berkas di luar folder aplikasi yang diubah.
+- Lingkungan ini bukan repositori Git pada saat pengerjaan. Verifikasi berbasis `git diff`/commit belum dilakukan; sesuai arahan, tidak ada operasi Git yang dijalankan.
+- Pesan commit pada setiap bug **belum dibuat** dan hanya berupa usulan. Commit sebenarnya menunggu tindakan manual pemilik repositori.
