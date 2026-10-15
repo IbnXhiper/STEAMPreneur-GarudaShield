@@ -1,0 +1,74 @@
+# Lab compose — untuk verifikasi lokal di Docker (bukan production!).
+# Bedanya dengan docker-compose.prod.yml:
+#   - mount garudashield.lab.json (bogonFilter OFF, reputation OFF — karena di
+#     docker lab semua traffic dari subnet privat/bogon 172.19.0.0/16).
+#   - engine masih plaintext internal; caddy termination TLS tetap aktif.
+#   - TIDAK untuk production. Production pakai docker-compose.prod.yml +
+#     garudashield.prod.json (bogon + reputation ON).
+#
+#   docker compose -f docker-compose.lab.yml --env-file .env up -d
+
+services:
+  engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["gs", "-config", "/etc/gs/garudashield.json"]
+    env_file: .env
+    environment:
+      GS_ADMIN_SECRET: "${GS_ADMIN_SECRET}"
+      GS_ACCESS_SECRET: "${GS_ACCESS_SECRET}"
+    volumes:
+      - ./garudashield.lab.json:/etc/gs/garudashield.json:ro
+      - ./data/GeoIP:/data/GeoIP:ro
+    expose:
+      - "8080"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/api/status"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      - upstream
+    networks:
+      - edge
+
+  upstream:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./deploy/upstream-index.html:/usr/share/nginx/html/index.html:ro
+    expose:
+      - "80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:80/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - edge
+
+  caddy:
+    image: caddy:2.8-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+    depends_on:
+      - engine
+    networks:
+      - edge
+
+networks:
+  edge:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:

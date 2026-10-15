@@ -1,0 +1,140 @@
+# Production compose for GarudaShield v3.
+#   cp .env.example .env   (fill secrets)
+#   docker compose -f docker-compose.prod.yml --env-file .env up -d
+#
+# Topology:
+#   caddy  (:443 TLS)  ->  engine (:8080, plaintext internal)  ->  upstream (your app)
+#   postgres (durable commercial state: tenants/users/licenses/audit)
+#   redis  (cluster L2 state sync, optional via GS_REDIS_ENABLED=on)
+#   web    (dashboard, talks to engine via GS_API_KEY)
+#
+# The engine is NOT exposed to the host — only caddy is. Secrets come from .env
+# (env_file), never baked into the image or config JSON.
+
+services:
+  engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["gs", "-config", "/etc/gs/garudashield.json"]
+    env_file: .env
+    environment:
+      GS_REDIS_ENABLED: "${GS_REDIS_ENABLED:-off}"
+      GS_REDIS_ADDR: "${GS_REDIS_ADDR:-redis:6379}"
+      GS_REDIS_PREFIX: "${GS_REDIS_PREFIX:-gs}"
+      GS_ADMIN_SECRET: "${GS_ADMIN_SECRET}"
+      GS_ACCESS_SECRET: "${GS_ACCESS_SECRET}"
+      GS_DATABASE_URL: "postgres://${POSTGRES_USER:-garuda}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-garudashield}?sslmode=disable"
+      GS_SESSION_SECRET: "${GS_SESSION_SECRET}"
+      GS_LICENSE_SECRET: "${GS_LICENSE_SECRET}"
+    volumes:
+      - ./garudashield.prod.json:/etc/gs/garudashield.json:ro
+      - ./data/GeoIP:/data/GeoIP:ro
+    expose:
+      - "8080"
+    mem_limit: 1g
+    memswap_limit: 1g
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/api/status"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      upstream:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - edge
+
+  upstream:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./deploy/upstream-index.html:/usr/share/nginx/html/index.html:ro
+    expose:
+      - "80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:80/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - edge
+
+  web:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    environment:
+      GS_API_URL: "http://engine:8080"
+      GS_API_KEY: "${GS_API_KEY}"
+    expose:
+      - "3000"
+    mem_limit: 2g
+    memswap_limit: 2g
+    restart: unless-stopped
+    depends_on:
+      - engine
+    networks:
+      - edge
+
+  caddy:
+    image: caddy:2.8-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./static:/srv/static:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+    depends_on:
+      - engine
+    networks:
+      - edge
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    expose:
+      - "6379"
+    restart: unless-stopped
+    networks:
+      - edge
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-garuda}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DB:-garudashield}"
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-garuda} -d ${POSTGRES_DB:-garudashield}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - edge
+
+networks:
+  edge:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
+  redis_data:
+  postgres_data:
