@@ -211,3 +211,42 @@ Dokumen ini mencatat bug yang benar-benar ditemukan, diuji, dan diperbaiki pada 
 - **Ditemukan oleh:** bersama (AI dibantu pemeriksaan manusia)
 
 ---
+
+## Bug 6 — Pembayaran kurang tidak ditolak
+
+- **Gejala** (apa yang terlihat salah):
+  Ketika uang yang dibayar kurang dari total, transaksi justru dianggap berhasil dan menampilkan kembalian negatif. Contoh: total 10.500, dibayar 10.499 → aplikasi menampilkan "Kembalian: Rp-1" dan pesan "Pembayaran berhasil".
+
+- **Langkah untuk memunculkan bug:**
+  1. Isi keranjang dengan total Rp10.500.
+  2. Isi "Uang dibayar" dengan 10.499.
+  3. Klik "Bayar" → muncul "Kembalian: Rp-1" dan pesan "Pembayaran berhasil". Seharusnya ditolak dengan pesan "Uang pembayaran kurang".
+
+- **Aturan bisnis yang dilanggar** (nomor aturan di README):
+  Aturan 7 — Jika uang yang dibayar kurang dari total, transaksi ditolak dengan pesan "Uang pembayaran kurang". Jika cukup, kembalian = uang dibayar - total.
+
+- **Penyebab** (file, fungsi, dan penjelasan):
+  Pada kode lama, fungsi `hitungKembalian` di `kasir.js` (baris 83–85) hanya mengembalikan `bayar - total` tanpa pemeriksaan. Di `app.js`, hasil dari `hitungKembalian` dianggap sukses selama tidak ada error, lalu ditampilkan "Kembalian: ..." dan pesan "Pembayaran berhasil". Karena tidak ada validasi, pembayaran kurang menghasilkan kembalian negatif dan tetap dianggap berhasil, melanggar aturan 7 yang mengharuskan transaksi ditolak.
+
+- **Perbaikan** (apa yang diubah):
+  Pada `kasir.js` (baris 90–95) ditambahkan pemeriksaan sebelum menghitung kembalian:
+  ```js
+  if (bayar < total) {
+    throw new Error("Uang pembayaran kurang");
+  }
+  return bayar - total;
+  ```
+  Karena `app.js` menangkap error dan menampilkan `err.message`, pesan yang tampil persis "Uang pembayaran kurang" dan teks kembalian dibersihkan (`elHasilBayar.textContent = ""`), sehingga transaksi yang ditolak tidak menampilkan status sukses maupun kembalian yang menyesatkan.
+
+- **Test yang membuktikan** (nama test):
+  Berkas `tes/pembayaran.test.js`: "pembayaran kurang Rp1 ditolak dengan pesan persis", "pembayaran jauh di bawah total ditolak", "pembayaran nol ditolak (uang dibayar kosong -> 0)", "pembayaran tepat sama menghasilkan kembalian 0", "pembayaran lebih menghasilkan kembalian yang benar", dan "transaksi yang ditolak tidak menghasilkan kembalian menyesatkan".
+  Hasil pada kode lama: **gagal** (tidak ada exception yang dilempar).
+  Hasil setelah perbaikan: **lulus**.
+
+- **Commit perbaikan** (pesan commit):
+  Belum dibuat — menunggu commit manual.
+  Usulan: `perbaikan: tolak pembayaran kurang dengan pesan "Uang pembayaran kurang"`
+
+- **Ditemukan oleh:** bersama (AI dibantu pemeriksaan manusia)
+
+---
