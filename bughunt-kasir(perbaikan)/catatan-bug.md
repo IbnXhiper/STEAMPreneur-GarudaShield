@@ -64,3 +64,42 @@ Dokumen ini mencatat bug yang benar-benar ditemukan, diuji, dan diperbaiki pada 
 - **Ditemukan oleh:** bersama (AI dibantu pemeriksaan manusia)
 
 ---
+
+## Bug 2 — Batas maksimum 99 per produk tidak ditegakkan saat penggabungan
+
+- **Gejala** (apa yang terlihat salah):
+  Jumlah satu jenis produk bisa melebihi 99 ketika produk yang sama ditambahkan berulang kali. Contoh: tambah 98 lalu tambah 2 → jumlah menjadi `100`, padahal seharusnya ditolak.
+
+- **Langkah untuk memunculkan bug:**
+  1. Tambahkan Es Teh 98.
+  2. Tambahkan Es Teh 2.
+  3. Jumlah di keranjang menjadi `100` (melampaui batas 99). Seharusnya operasi ditolak dan keranjang tetap 98.
+
+- **Aturan bisnis yang dilanggar** (nomor aturan di README):
+  Aturan 2 — Jika produk yang sudah ada di keranjang ditambahkan lagi, jumlahnya dijumlahkan, dan total jumlah per produk tetap tidak boleh lebih dari 99.
+
+- **Penyebab** (file, fungsi, dan penjelasan):
+  Pada kode lama di `kasir.js`, cabang penggabungan di fungsi `tambahItem` (baris 31–34) hanya menjalankan `itemLama.qty += qty`. Tidak ada pemeriksaan apakah hasil penjumlahan melewati 99, sehingga 98 + 2 = 100 diterima. Pemeriksaan batas hanya dilakukan pada item baru (lewat rentang) tidak ada sama sekali, sehingga aturan 2 soal batas gabungan tidak pernah ditegakkan.
+
+- **Perbaikan** (apa yang diubah):
+  Pada `kasir.js` (baris 36–41), sebelum mengubah keranjang, hasil gabungan diperiksa lebih dulu:
+  ```js
+  if (itemLama.qty + jumlah > 99) {
+    throw new Error("Jumlah maksimal 99 per produk");
+  }
+  itemLama.qty += jumlah;
+  ```
+  Pemeriksaan dilakukan **sebelum** mutasi sehingga operasi yang ditolak tidak meninggalkan keranjang dalam keadaan berubah sebagian.
+
+- **Test yang membuktikan** (nama test):
+  Berkas `tes/validasi-keranjang.test.js`: "98 + 1 = 99 diterima", "98 + 2 melebihi batas dan ditolak", "99 + 1 melebihi batas dan ditolak", "operasi merge yang ditolak tidak mengubah keranjang (tanpa perubahan sebagian)", dan "tambah 3 x 99 tetap terkunci di 99 dan gagal pada penambahan setelah penuh".
+  Hasil pada kode lama: **gagal** (jumlah menjadi 100; test penolakan tidak melempar error).
+  Hasil setelah perbaikan: **lulus**.
+
+- **Commit perbaikan** (pesan commit):
+  Belum dibuat — menunggu commit manual.
+  Usulan: `perbaikan: tegakkan batas maksimum 99 saat menggabungkan produk`
+
+- **Ditemukan oleh:** bersama (AI dibantu pemeriksaan manusia)
+
+---
