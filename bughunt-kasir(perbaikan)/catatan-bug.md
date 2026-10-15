@@ -250,3 +250,22 @@ Dokumen ini mencatat bug yang benar-benar ditemukan, diuji, dan diperbaiki pada 
 - **Ditemukan oleh:** bersama (AI dibantu pemeriksaan manusia)
 
 ---
+
+## Test tambahan yang ditambahkan
+
+| Berkas | Cakupan |
+|---|---|
+| `tes/validasi-keranjang.test.js` | Validasi jumlah (aturan 1) dan penggabungan/batas 99 (aturan 2) |
+| `tes/diskon.test.js` | Diskon member & non-member, ambang 100000, pembulatan (aturan 4) |
+| `tes/ppn-total.test.js` | Pembulatan PPN (aturan 5) dan total (aturan 6) |
+| `tes/pembayaran.test.js` | Pembayaran kurang/tepat/lebih dan kembalian (aturan 7) |
+
+Test contoh `tes/contoh.test.js` tidak diubah dan tetap lulus.
+
+## Berkas yang diubah
+
+- `kasir.js` — perbaikan 6 bug di atas (fungsi `tambahItem`, `hitungDiskon`, `hitungPPN`, `hitungKembalian`).
+- `catatan-bug.md` — dokumen ini.
+- `tes/validasi-keranjang.test.js`, `tes/diskon.test.js`, `tes/ppn-total.test.js`, `tes/pembayaran.test.js` — test baru.
+
+`app.js` dan `index.html` tidak diubah karena perilaku tampilan sudah benar setelah logika di `kasir.js` diperbaiki.
