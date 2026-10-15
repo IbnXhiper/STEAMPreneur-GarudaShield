@@ -176,3 +176,38 @@ Dokumen ini mencatat bug yang benar-benar ditemukan, diuji, dan diperbaiki pada 
 - **Ditemukan oleh:** bersama (AI dibantu pemeriksaan manusia)
 
 ---
+
+## Bug 5 — PPN dibulatkan ke bawah, bukan ke rupiah terdekat
+
+- **Gejala** (apa yang terlihat salah):
+  Nilai PPN selalu dibulatkan ke bawah, sehingga pecahan 0,5 ke atas tidak dibulatkan naik. Contoh: dasar pajak Rp950 → PPN = 104,5 → tertulis 104, seharusnya 105. Dasar Rp960 → 105,6 → tertulis 105, seharusnya 106.
+
+- **Langkah untuk memunculkan bug:**
+  1. Panggil `hitungPPN(950)` → hasil 104. Seharusnya 105 (0,5 dibulatkan naik).
+  2. Panggil `hitungPPN(960)` → hasil 105. Seharusnya 106 (di atas 0,5 dibulatkan naik).
+
+- **Aturan bisnis yang dilanggar** (nomor aturan di README):
+  Aturan 5 — PPN 11% dihitung dari (subtotal dikurangi diskon), lalu dibulatkan ke rupiah terdekat dengan pecahan 0,5 ke atas dibulatkan naik.
+
+- **Penyebab** (file, fungsi, dan penjelasan):
+  Pada kode lama, fungsi `hitungPPN` di `kasir.js` (baris 70–72) memakai `Math.floor((dasar * 11) / 100)`. `Math.floor` selalu membulatkan ke bawah, jadi pecahan berapa pun—termasuk yang ≥ 0,5—dibuang. Akibatnya PPN tidak pernah dibulatkan ke rupiah terdekat sebagaimana diminta aturan 5, sehingga nilai pajak terlalu kecil untuk dasar pajak yang menghasilkan pecahan ≥ 0,5.
+
+- **Perbaikan** (apa yang diubah):
+  Pada `kasir.js` (baris 78) ditambahkan `+ 0.5` sebelum `Math.floor`:
+  ```js
+  return Math.floor((dasar * 11) / 100 + 0.5);
+  ```
+  Untuk bilangan positif, menambah 0,5 lalu membulatkan ke bawah menghasilkan pembulatan setengah ke atas. Untuk pembilang bilangan bulat, pecahan tepat 0,5 (misalnya 104,5 dari 950 × 11 / 100) direpresentasikan tepat sebagai bilangan biner sehingga hasilnya deterministik (105).
+
+- **Test yang membuktikan** (nama test):
+  Berkas `tes/ppn-total.test.js`: "PPN pecahan di bawah 0,5 dibulatkan turun (940 -> 103,4 -> 103)", "PPN pecahan tepat 0,5 dibulatkan naik (950 -> 104,5 -> 105)", "PPN pecahan di atas 0,5 dibulatkan naik (960 -> 105,6 -> 106)", dan "PPN bilangan bulat tetap sama (1000 -> 110)".
+  Hasil pada kode lama: **gagal** (`104 !== 105` dan `105 !== 106`).
+  Hasil setelah perbaikan: **lulus**.
+
+- **Commit perbaikan** (pesan commit):
+  Belum dibuat — menunggu commit manual.
+  Usulan: `perbaikan: PPN dibulatkan ke rupiah terdekat (0,5 ke atas)`
+
+- **Ditemukan oleh:** bersama (AI dibantu pemeriksaan manusia)
+
+---
