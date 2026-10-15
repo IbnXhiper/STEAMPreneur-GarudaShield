@@ -12,27 +12,27 @@ GarudaShield ditujukan bagi pemilik website, pelaku UMKM, administrator server, 
 
 ## 3. Hasil wawancara calon pengguna
 Narasumber (tulis perannya saja, tanpa data pribadi, misalnya "pelanggan kantin, kelas XI"):
+- Network Engineer — instansi pemerintah daerah bidang komunikasi dan informatika
+- Programmer — instansi pemerintah daerah bidang komunikasi dan informatika
+- Data Analyst — instansi pemerintah daerah bidang komunikasi dan informatika
+- Fullstack Developer — praktisi industri
+- Praktisi Cyber Security — praktisi keamanan siber
+
 Cara wawancara (langsung / lewat pesan) dan tanggal:
-
-Narasumber 1: Network Engineer
-           2: Programmer
-           3: Data Analyst
-           4: Full-Stack Developer
-           5: Praktisi Cyber Security
-
-Cara wawancara dan tanggal:
-5 Oktober 2026, pukul 14.00 WIB — Tatap muka: Wawancara bersama tiga narasumber dari Komdigi, yaitu Network Engineer, Programmer, dan Data Analyst, dalam satu sesi.
-5 Oktober 2026, pukul 20.00 WIB — Tatap muka: Wawancara bersama narasumber dengan peran Full-Stack Developer.
-6 Oktober 2026, pukul 20.00 WIB — Daring: Wawancara bersama narasumber dengan peran Praktisi Cyber Security melalui Google Meet.           
+- 5 Oktober 2026, pukul 14.00 WIB — Tatap muka: tiga narasumber dari instansi pemerintah (Network Engineer, Programmer, dan Data Analyst) diwawancarai dalam satu sesi.
+- 5 Oktober 2026, pukul 20.00 WIB — Tatap muka: wawancara bersama narasumber dengan peran Fullstack Developer.
+- 6 Oktober 2026, pukul 20.00 WIB — Daring (Google Meet): wawancara bersama narasumber dengan peran Praktisi Cyber Security.
 
 | Pertanyaan kami | Jawaban narasumber |
 | :--- | :--- |
-|Kalau boleh tahu, selama bekerja di bidang IT peran Bapak saat ini di bidang IT itu sebagai apa ya?|Narasumber memiliki peran sebagai Network Engineer, Programmer, Data Analyst, Full-Stack Developer, dan Praktisi Cyber Security.|
-|Pernah mengalami gangguan karena banyaknya permintaan yang masuk secara bersamaan?   |Tiga narasumber dari Komdigi pernah menghadapi kondisi banyaknya permintaan secara bersamaan. Praktisi Cyber Security juga menyampaikan bahwa kondisi traffic tinggi sudah menjadi makanan sehari-hari dalam pekerjaannya.|
+|Kalau boleh tahu, selama bekerja di bidang IT peran Bapak saat ini di bidang IT itu sebagai apa ya?|Narasumber memiliki peran sebagai Network Engineer, Programmer, Data Analyst, Fullstack Developer, dan Praktisi Cyber Security.|
+|Pernah mengalami gangguan karena banyaknya permintaan yang masuk secara bersamaan?|Tiga narasumber dari instansi pemerintah pernah mengalaminya saat membangun layanan yang dipakai masyarakat; Praktisi Cyber Security menyebut kondisi traffic tinggi sudah menjadi "makanan sehari-hari" dalam pekerjaannya.|
 |Kalau terjadi kondisi seperti itu, biasanya apa yang paling dikhawatirkan oleh tim IT?|Server kewalahan atau down sehingga layanan tidak dapat diakses, serta risiko kehilangan atau terganggunya data.|
-|Kalau kondisi seperti itu terjadi, biasanya perusahaan melakukan apa untuk mengatasinya?|Penanganan yang disebutkan meliputi penggunaan firewall, pendekatan keamanan berlapis, dan mitigasi pada Layer 4 serta Layer 7.|
-|Menurut Bapak, apakah permasalahan yang ingin kami selesaikan ini memang relevan dengan kebutuhan perusahaan?|Narasumber menilai masalah tersebut relevan dengan kebutuhan keamanan dan ketersediaan layanan digital.|
-|Apakah GarudaShield cocok untuk membantu mengatasi masalah tersebut?|GarudaShield dinilai berpotensi membantu, tetapi perlu melalui pengujian teknis. Penerapannya juga perlu mempertimbangkan fitur, biaya, kebutuhan pengguna, dan kemampuan menghadapi serangan DDoS berskala besar.|
+|Kalau kondisi seperti itu terjadi, biasanya perusahaan melakukan apa untuk mengatasinya?|Instansi menggunakan firewall; Fullstack Developer menekankan pentingnya keamanan berlapis (multi-layer); Praktisi Cyber Security menjelaskan mitigasi pada Layer 4 (jaringan/transport) dan Layer 7 (aplikasi).|
+|Menurut Bapak/Ibu, apakah permasalahan yang ingin kami selesaikan ini memang relevan dengan kebutuhan perusahaan?|Semua narasumber menilai masalah tersebut relevan dengan kebutuhan keamanan dan ketersediaan layanan digital.|
+|Apakah GarudaShield cocok untuk membantu perusahaan menghadapi masalah di atas?|GarudaShield dinilai berpotensi membantu, tetapi perlu melalui pengujian teknis terlebih dahulu dan dipastikan tidak ada kesalahan. Penerapannya juga perlu mempertimbangkan fitur, harga, kesesuaian kebutuhan, dan kemampuan menghadapi serangan DDoS berskala besar.|
+
+**Catatan hasil wawancara:** Para narasumber memvalidasi masalahnya (status: **tervalidasi**), namun menegaskan bahwa efektivitas GarudaShield tidak cukup dinilai dari daftar fitur — perlu pembuktian lewat pengujian teknis dan evaluasi biaya. Masukan ini menjadi dasar aturan bisnis dan kriteria "selesai" pada bagian berikutnya.
 
 ## 4. Fitur wajib (hanya untuk alur inti)
 ## Alur Inti
@@ -87,12 +87,12 @@ GarudaShield menggunakan model layanan berlangganan (*subscription-based*) denga
 
 Setiap kriteria harus dapat diuji dan dijawab ya atau tidak.
 
-- [ ] Pengguna dapat mendaftar dan login, kemudian mendapatkan paket Free secara otomatis setelah registrasi berhasil.
+- [x] Pengguna dapat mendaftar dan login, kemudian mendapatkan paket Free secara otomatis setelah registrasi berhasil.
 - [x] Pengguna dapat menambahkan domain dengan input yang valid, sedangkan input kosong atau format domain yang tidak valid ditolak dengan pesan kesalahan yang jelas.
 - [x] Sistem membatasi pengguna paket Free maksimal satu domain dan menampilkan informasi upgrade ketika pengguna mencoba menambahkan domain berikutnya.
 - [x] Data akun, paket, dan domain tersimpan serta tetap tersedia setelah halaman dimuat ulang.
 - [x] Dashboard menampilkan daftar domain beserta status verifikasi dan proteksinya sesuai data yang tersimpan.
-- [ ] Sistem menerapkan aturan akses fitur berdasarkan paket pengguna dan menampilkan informasi upgrade untuk fitur yang tidak tersedia pada paket Free.
+- [x] Sistem menerapkan aturan akses fitur berdasarkan paket pengguna dan menampilkan informasi upgrade untuk fitur yang tidak tersedia pada paket Free.
 - [x] Pengguna dapat melihat informasi paket Pro dengan harga Rp499.000 per bulan dan opsi paket tahunan dengan diskon 15%.
-- [ ] Seluruh kasus uji yang direncanakan telah dijalankan, hasil aktual dicatat, dan setiap kriteria yang dinyatakan lulus memiliki bukti pengujian.
-- [ ] Website dapat dijalankan mengikuti instruksi di README.md tanpa langkah yang terlewat.
+- [x] Seluruh kasus uji yang direncanakan telah dijalankan, hasil aktual dicatat, dan setiap kriteria yang dinyatakan lulus memiliki bukti pengujian (lihat `04-kasus-uji.md`).
+- [x] Website dapat dijalankan mengikuti instruksi di README.md tanpa langkah yang terlewat.
