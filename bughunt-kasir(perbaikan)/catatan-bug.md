@@ -143,3 +143,36 @@ Dokumen ini mencatat bug yang benar-benar ditemukan, diuji, dan diperbaiki pada 
 - **Ditemukan oleh:** bersama (AI dibantu pemeriksaan manusia)
 
 ---
+
+## Bug 4 — Ambang diskon non-member memakai `>` bukan `>=`
+
+- **Gejala** (apa yang terlihat salah):
+  Non-member dengan subtotal **tepat** Rp100.000 tidak mendapat diskon, padahal aturan menyebut "minimal Rp100.000" berarti diskon berlaku mulai dari (termasuk) Rp100.000.
+
+- **Langkah untuk memunculkan bug:**
+  1. Pastikan "Pelanggan member" tidak dicentang.
+  2. Isi keranjang hingga subtotal tepat Rp100.000 (misalnya Es Teh 25 × Rp4.000).
+  3. Diskon = 0. Seharusnya 5% × 100.000 = Rp5.000.
+
+- **Aturan bisnis yang dilanggar** (nomor aturan di README):
+  Aturan 4 — Pelanggan bukan member dengan subtotal minimal Rp100.000 mendapat diskon 5% dari subtotal.
+
+- **Penyebab** (file, fungsi, dan penjelasan):
+  Pada kode lama, fungsi `hitungDiskon` di `kasir.js` memakai perbandingan ketat `subtotal > 100000` (baris 60). Karena ketat, subtotal yang tepat 100.000 tidak memenuhi syarat, sehingga diskon dihitung 0. Kata "minimal Rp100.000" pada aturan 4 berarti batas harus inklusif, sehingga memakai `>` mengecualikan nilai batas dan melanggar aturan tersebut.
+
+- **Perbaikan** (apa yang diubah):
+  Perbandingan diubah menjadi `subtotal >= 100000` pada `kasir.js` (baris 70), sehingga batas Rp100.000 inklusif sesuai kata "minimal".
+
+- **Test yang membuktikan** (nama test):
+  Berkas `tes/diskon.test.js`: "non-member tepat 100000 dapat diskon 5% (5000)" dan (regresi) "non-member di bawah 100000 tidak dapat diskon".
+  Berkas `tes/ppn-total.test.js`: "ringkasan non-member tepat 100000 (diskon 5000, PPN 10450, total 105450)".
+  Hasil pada kode lama: **gagal** (`0 !== 5000`).
+  Hasil setelah perbaikan: **lulus**.
+
+- **Commit perbaikan** (pesan commit):
+  Belum dibuat — menunggu commit manual.
+  Usulan: `perbaikan: ambang diskon non-member minimal Rp100.000 inklusif`
+
+- **Ditemukan oleh:** bersama (AI dibantu pemeriksaan manusia)
+
+---
