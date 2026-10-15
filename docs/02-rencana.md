@@ -19,7 +19,7 @@ dalam 30–60 menit.
 | 7 | Dashboard: daftar domain + status verifikasi & proteksi, tersimpan setelah reload | Didan | Muat ulang halaman → data domain tetap ada | 60 menit | 60 menit | Selesai |
 | 8 | Panel pantau trafik & ancaman (polling/SSE) | Fahish | Angka trafik berubah mengikuti aktivitas | 60 menit | 80 menit | Selesai |
 | 9 | Unit test alur inti (registrasi, batas domain, validasi) | Adriansyah | `go test ./internal/... ./cmd/...` hijau | 60 menit | 55 menit | Selesai |
-| 10 | Bug Hunt | Seluruh tim | Catatan bug dan test selesai (`catatan-bug.md`) | 60 menit | | Belum |
+| 10 | Bug Hunt | Seluruh tim | Catatan bug dan test selesai (`catatan-bug.md`) | 60 menit | 45 menit | selesai |
 | 11 | Change request (pencarian, filter, ekspor CSV) | Adriansyah | Semua kasus uji lama dan baru lulus | 90 menit | 75 menit | Selesai |
 | 12 | Dokumentasi dan refleksi | Fahish | README bisa diikuti orang lain | 60 menit | 50 Menit | Selesai |
 
