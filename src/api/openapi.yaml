@@ -1,0 +1,643 @@
+openapi: 3.1.0
+info:
+  title: GarudaShield Admin API
+  version: "3.0.0"
+  description: >
+    Admin/control-plane API for GarudaShield v3.
+    Paths intentionally match v2 (/api/...) so nginx vhosts and operational
+    habits carry over. Auth via X-GS-Key header (server-side only; the Next.js
+    BFF injects it).
+servers:
+  - url: http://127.0.0.1:{dashboardPort}
+    variables:
+      dashboardPort:
+        default: "3000"
+security:
+  - ApiKey: []
+
+paths:
+  /api/stats:
+    get:
+      operationId: getStats
+      summary: Full shield statistics snapshot (cached ~500 ms server-side)
+      responses:
+        "200":
+          description: Stats snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stats"
+
+  /api/status:
+    get:
+      operationId: getStatus
+      summary: Public component health & uptime status
+      security: []
+      responses:
+        "200":
+          description: Status page payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+
+  # --- Commercial control plane (versioned, additive) -----------------------
+  # Secret management routes use the signed tenant session cookie (gs_session)
+  # set by /api/auth/login. The operator surface (/api/admin/*) still uses the
+  # X-GS-Key / Bearer operator secret.
+
+  /api/v1/auth/login:
+    post:
+      operationId: loginV1
+      summary: Authenticate a tenant user and set the signed session cookie
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+                tenant: { type: string, description: optional tenant id }
+                code: { type: string, description: TOTP/recovery code when 2FA is enabled }
+      responses:
+        "200":
+          description: Logged in; Set-Cookie gs_session
+        "202":
+          description: MFA required; body has {mfaRequired:true, mfaToken}
+        "401": { description: Invalid credentials or code }
+        "429": { description: Login rate-limited }
+
+  /api/v1/auth/logout:
+    post:
+      operationId: logoutV1
+      summary: Clear the session and revoke it server-side
+      security: []
+      responses:
+        "200":
+          description: Logged out
+
+  /api/v1/auth/register:
+    post:
+      operationId: registerV1
+      summary: Public self-registration for the free plan (tenant derived from email)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password, minLength: 12 }
+                tenant: { type: string, description: optional; derived from email if absent }
+                name: { type: string, description: optional display name }
+      responses:
+        "200":
+          description: "Registered + auto-login (Set-Cookie: gs_session)"
+        "400": { description: Invalid email/password/tenant }
+        "409": { description: Email or tenant already registered }
+        "429": { description: Registration rate-limited per IP }
+
+  /api/v1/auth/mfa/verify:
+    post:
+      operationId: loginMFAV1
+      summary: Complete login with a TOTP/recovery code (second factor)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mfaToken, code]
+              properties:
+                mfaToken: { type: string, description: short-lived token from login step 1 }
+                code: { type: string, description: 6-digit TOTP or a recovery code }
+      responses:
+        "200":
+          description: Second factor accepted; Set-Cookie gs_session
+        "401": { description: Invalid/expired mfa token or wrong code }
+
+  /api/v1/auth/password/reset-request:
+    post:
+      operationId: passwordResetRequestV1
+      summary: Email a single-use password-reset link (always 200, no enumeration)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        "200": { description: Accepted (uniform response whether or not the account exists) }
+        "429": { description: Rate-limited per IP }
+
+  /api/v1/auth/password/reset:
+    post:
+      operationId: passwordResetV1
+      summary: Set a new password using a reset token; revokes all sessions
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, newPassword]
+              properties:
+                token: { type: string }
+                newPassword: { type: string, format: password, minLength: 12 }
+      responses:
+        "200": { description: Password updated; sessions revoked }
+        "400": { description: Weak password or missing token }
+        "401": { description: Invalid, expired, or already-used token }
+
+  /api/v1/account:
+    get:
+      operationId: accountV1
+      summary: The authenticated user's profile (email, role, tenant)
+      responses:
+        "200":
+          description: Profile
+        "401": { description: No valid session }
+
+  /api/v1/account/mfa/setup:
+    post:
+      operationId: mfaSetupV1
+      summary: Generate a TOTP secret (still disabled) and return the otpauth URI
+      responses:
+        "200": { description: Contains secret + otpauthUrl to scan }
+        "401": { description: No valid session }
+
+  /api/v1/account/mfa/enable:
+    post:
+      operationId: mfaEnableV1
+      summary: Confirm setup with a live code and return one-time recovery codes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string }
+      responses:
+        "200": { description: MFA enabled; recoveryCodes returned exactly once }
+        "400": { description: Setup not started }
+        "401": { description: No valid session or wrong code }
+
+  /api/v1/account/mfa/disable:
+    post:
+      operationId: mfaDisableV1
+      summary: Disable MFA (requires a valid TOTP/recovery code)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string }
+      responses:
+        "200": { description: MFA disabled; recovery codes cleared }
+        "401": { description: No valid session or wrong code }
+
+  /api/v1/account/password:
+    post:
+      operationId: changePasswordV1
+      summary: >-
+        Verify current password, update the hash, revoke every other session
+        (session_version bump) and rotate the caller's session cookie
+      responses:
+        "200":
+          description: Password updated; session rotated
+        "400": { description: New password invalid }
+        "401": { description: No valid session or wrong current password }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword: { type: string, format: password }
+                newPassword: { type: string, format: password, minLength: 12 }
+
+  /api/v1/quota:
+    get:
+      operationId: quotaV1
+      summary: The authenticated tenant's current daily usage vs plan budget
+      responses:
+        "200":
+          description: Usage + limit snapshot (0 limit = unlimited plan)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuotaSnapshot"
+        "401": { description: No valid session }
+        "404": { description: Tenant not found }
+
+  /api/v1/tenant/me:
+    get:
+      operationId: tenantMeV1
+      summary: The authenticated tenant's own plan/license/domain
+      responses:
+        "200":
+          description: Tenant profile
+        "401": { description: No valid session }
+
+  /api/v1/keys:
+    get:
+      operationId: listApiKeys
+      summary: List the tenant's API keys (masked, never the raw secret)
+      responses:
+        "200":
+          description: Key list (masked)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  keys:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/APIKeyMeta"
+        "401": { description: No valid session }
+    post:
+      operationId: createApiKey
+      summary: Mint an API key; the raw secret is returned exactly once (admin+)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 64 }
+                scopes:
+                  type: array
+                  items:
+                    type: string
+                    enum: [read, write, admin]
+                  description: default ["read"]
+                ttlDays: { type: integer, minimum: 0, maximum: 3650, description: 0 = default 90 days }
+      responses:
+        "201":
+          description: Created; contains the raw key (single retrieval)
+        "400": { description: Invalid name/scope/ttl }
+        "401": { description: No valid session }
+        "403": { description: Insufficient role (admin+ only) }
+
+  /api/v1/keys/{id}:
+    delete:
+      operationId: revokeApiKey
+      summary: Revoke one of the tenant's own API keys (admin+ only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200": { description: Revoked; audit row written }
+        "401": { description: No valid session }
+        "403": { description: Insufficient role (admin+ only) }
+        "404": { description: Key not found (or belongs to another tenant) }
+
+  /api/v1/assets:
+    get:
+      operationId: listAssets
+      summary: List the tenant's protected domains (assets)
+      responses:
+        "200":
+          description: Asset list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assets:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Asset"
+                  plan:
+                    type: string
+                    description: The tenant's plan name (free | pro | enterprise)
+                  domainLimit:
+                    type: integer
+                    description: >
+                      Maximum protected domains allowed on this plan. 0 means
+                      unlimited. Free is capped at 1; the portal uses this to
+                      show "x of y domains" and the upgrade prompt.
+        "401": { description: No valid session }
+    post:
+      operationId: createAsset
+      summary: Register a protected domain; returns a DNS TXT ownership challenge (admin+ only)
+      description: >
+        The domain must be a strict public hostname (no scheme/path/port and no
+        IP literal). The optional origin host is screened against SSRF: URLs are
+        rejected and any host resolving into private/loopback/link-local/metadata
+        space is refused. The domain is enforced by the edge only after the DNS
+        TXT challenge succeeds. The per-plan domain cap is enforced here: the
+        free plan may hold a single domain.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [domain]
+              properties:
+                domain: { type: string, example: "shop.example.com" }
+                originHost: { type: string, description: optional upstream host (public only) }
+                originPort: { type: integer, minimum: 0, maximum: 65535 }
+      responses:
+        "201":
+          description: Created (pending); response carries the TXT challenge
+        "400": { description: Invalid domain/origin, or origin resolves to a blocked address }
+        "401": { description: No valid session }
+        "402":
+          description: >
+            Plan domain limit reached (e.g. free already holds 1 domain).
+            The body carries code=plan_domain_limit, plan, limit, used and an
+            upgrade target so the client can offer an upgrade.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string }
+                  code: { type: string, example: "plan_domain_limit" }
+                  plan: { type: string, example: "free" }
+                  limit: { type: integer, example: 1 }
+                  used: { type: integer, example: 1 }
+                  upgrade: { type: string, example: "pro" }
+        "403": { description: Insufficient role (admin+ only) }
+        "409": { description: Domain already registered }
+
+  /api/v1/assets/{id}/verify:
+    post:
+      operationId: verifyAsset
+      summary: Prove DNS ownership of a pending asset and activate it at the edge (admin+ only)
+      description: >
+        Looks up the challenge TXT record at "_garudashield.<domain>" first, then
+        falls back to the apex "<domain>" (either name is accepted, since only the
+        domain owner can publish TXT there). In both cases the record value must
+        carry the exact "gs-verify=<token>" for the asset — a matching record name
+        alone is never enough. Status codes distinguish "not published yet" (400)
+        from "published but wrong token" (422) so callers can tell the two apart.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200": { description: Verified; asset now enforced by the edge }
+        "400":
+          description: >
+            TXT record not found yet at "_garudashield.<domain>" or "<domain>"
+            (or invalid id). Wait for DNS propagation and retry.
+        "401": { description: No valid session }
+        "403": { description: Insufficient role (admin+ only) }
+        "404": { description: Asset not found (or belongs to another tenant) }
+        "422": { description: A TXT record was found but the gs-verify token did not match }
+        "502": { description: DNS lookup failed (resolver error) }
+        "504": { description: DNS lookup timed out }
+
+  /api/v1/assets/{id}:
+    delete:
+      operationId: deleteAsset
+      summary: Stop protecting one of the tenant's own domains (admin+ only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200": { description: Deleted; audit row written }
+        "401": { description: No valid session }
+        "403": { description: Insufficient role (admin+ only) }
+        "404": { description: Asset not found (or belongs to another tenant) }
+
+  /api/v1/audit:
+    get:
+      operationId: listAuditV1
+      summary: The authenticated tenant's own audit history (read-only)
+      description: >
+        Returns the tenant's audit_log rows, newest first. Scoped to the caller's
+        tenant - there is no way to select another tenant's history. Readable by
+        any role (viewer/admin/owner).
+      parameters:
+        - name: action
+          in: query
+          schema: { type: string, maxLength: 64 }
+          description: exact action filter (e.g. account.login, member.add)
+        - name: actor
+          in: query
+          schema: { type: string, maxLength: 128 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        "200":
+          description: Paginated audit history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AuditEntry"
+                  total: { type: integer, format: int64 }
+                  limit: { type: integer }
+                  offset: { type: integer }
+        "401": { description: No valid session }
+
+  /api/v1/members:
+    get:
+      operationId: listMembers
+      summary: List the tenant's teammates and their roles (any role may read)
+      responses:
+        "200":
+          description: Member list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  members:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Member"
+                  role: { type: string, description: caller's own role }
+        "401": { description: No valid session }
+    post:
+      operationId: addMember
+      summary: Add an admin/viewer teammate (owner only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, role]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password, minLength: 12 }
+                role: { type: string, description: "admin or viewer (owners are created by onboarding)" }
+      responses:
+        "201": { description: Created }
+        "400": { description: Invalid email/password/role }
+        "401": { description: No valid session }
+        "403": { description: Insufficient role (owner only) }
+        "409": { description: Email already a member }
+
+  /api/v1/members/{id}:
+    delete:
+      operationId: removeMember
+      summary: Remove a teammate (owner only; cannot remove self or the last owner)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200": { description: Removed; audit row written }
+        "400": { description: Invalid id }
+        "401": { description: No valid session }
+        "403": { description: Insufficient role (owner only) }
+        "404": { description: Member not found (or belongs to another tenant) }
+        "409": { description: Cannot remove yourself or the last owner }
+
+components:
+  securitySchemes:
+    ApiKey:
+      type: apiKey
+      in: header
+      name: X-GS-Key
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: gs_session
+
+  schemas:
+    APIKeyMeta:
+      type: object
+      required: [id, tenant, name, prefix, scopes, createdAt]
+      properties:
+        id: { type: integer, format: int64 }
+        tenant: { type: string }
+        name: { type: string }
+        prefix: { type: string, description: display prefix only }
+        masked: { type: string, description: safe-to-log display form }
+        scopes:
+          type: array
+          items: { type: string, enum: [read, write, admin] }
+        createdAt: { type: integer, format: int64 }
+        lastUsedAt: { type: integer, format: int64 }
+        expiresAt: { type: integer, format: int64, description: 0 = never }
+        revokedAt: { type: integer, format: int64, description: 0 = active }
+
+    Asset:
+      type: object
+      required: [id, tenant, domain, status, verifyToken, createdAt]
+      properties:
+        id: { type: integer, format: int64 }
+        tenant: { type: string }
+        domain: { type: string, description: protected hostname }
+        originHost: { type: string, description: optional upstream host }
+        originPort: { type: integer }
+        status: { type: string, enum: [pending, verified] }
+        verifyToken:
+          type: string
+          description: owner-only token for the TXT challenge (pending assets)
+        createdAt: { type: integer, format: int64 }
+        verifiedAt: { type: integer, format: int64, description: 0 = not yet verified }
+
+    AuditEntry:
+      type: object
+      required: [id, tenant, action, at, time]
+      properties:
+        id: { type: integer, format: int64 }
+        tenant: { type: string }
+        actor: { type: string, description: user id or the literal operator/tenant }
+        action: { type: string, example: "apikey.create" }
+        detail: { type: string }
+        ip: { type: string }
+        at: { type: integer, format: int64, description: Unix seconds }
+        time: { type: string, format: date-time }
+
+    Member:
+      type: object
+      required: [id, email, role, createdAt]
+      properties:
+        id: { type: integer, format: int64 }
+        email: { type: string, format: email }
+        role: { type: string, enum: [viewer, admin, owner] }
+        createdAt: { type: string, format: date-time }
+
+    QuotaSnapshot:
+      type: object
+      required: [tenant, plan, period, limit, used, remaining]
+      properties:
+        tenant: { type: string }
+        plan: { type: string }
+        period:
+          type: string
+          description: daily window key, e.g. "d:2026-10-11" (UTC)
+        limit: { type: integer, format: int64, description: 0 = unlimited }
+        used: { type: integer, format: int64 }
+        remaining: { type: integer, format: int64 }
+
+    Stats:
+      type: object
+      required: [version, name, uptime, mode]
+      properties:
+        version: { type: string }
+        name: { type: string }
+        uptime: { type: integer, format: int64, description: milliseconds }
+        mode:
+          type: string
+          enum: [normal, aggressive, emergency, auto]
+        emergencyMode: { type: boolean }
+        floodMode: { type: boolean }
+        timestamp: { type: string, format: date-time }
+
+    Status:
+      type: object
+      required: [components]
+      properties:
+        components:
+          type: array
+          items:
+            $ref: "#/components/schemas/ComponentStatus"
+
+    ComponentStatus:
+      type: object
+      required: [name, state]
+      properties:
+        name:
+          type: string
+          enum: [edge, api, cluster, storage, internet]
+        state:
+          type: string
+          enum: [operational, degraded, outage]
+        latencyMs: { type: number }
